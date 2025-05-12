@@ -1,0 +1,35 @@
+{
+  "name": "kuantanfunmap-server",
+  "version": "1.0.0",
+  "main": "server.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/server.ts",
+    "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/server.ts",
+    "lint": "eslint 'src/**/*.ts'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.17",
+    "dotenv": "^16.5.0",
+    "drizzle-kit": "^0.31.1",
+    "eslint": "^9.26.0",
+    "express": "^5.1.0",
+    "install": "^0.13.0",
+    "nodemon": "^3.1.10",
+    "npm": "^11.3.0",
+    "prettier": "^3.5.3",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.0",
+    "drizzle-orm": "^0.43.1",
+    "redis": "^5.0.1"
+  }
+}
