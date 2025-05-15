@@ -30,6 +30,7 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
     "drizzle-orm": "^0.43.1",
-    "redis": "^5.0.1"
+    "redis": "^5.0.1",
+    "redis-om": "^0.4.3"
   }
 }

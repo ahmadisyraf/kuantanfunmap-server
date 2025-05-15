@@ -2,7 +2,11 @@ import { Request, Response } from 'express';
 import * as placeService from '../services/place.service';
 
 async function getPlaces(req: Request, res: Response) {
-  const places = await placeService.getPlaces();
+  const { page, limit } = req.query;
+  const places = await placeService.getPlaces({
+    page: Number(page),
+    limit: Number(limit),
+  });
 
   res.json(places).status(200);
 }

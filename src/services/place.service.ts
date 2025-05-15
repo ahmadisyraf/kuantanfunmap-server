@@ -1,39 +1,79 @@
 import { eq } from 'drizzle-orm';
-import { place } from '../models/place.model';
-import { db } from '../utils/db';
-import redisClient from '../utils/redis';
+import { place as placeTable } from '../models/place.model';
+import { db } from '../lib/db';
+import { initRedis } from '../lib/redis';
+import { PlaceType } from '../types/place';
 
-async function getPlaces() {
-  const redis = await redisClient();
-  const redisPlaces = await redis.get('place:all');
+async function getPlaces({ limit, page }: { limit: number; page: number }) {
+  const redis = await initRedis();
 
-  if (redisPlaces) {
-    return JSON.parse(redisPlaces);
+  if (!limit) limit = 10;
+  if (!page) page = 1;
+
+  const offset = (page - 1) * limit;
+  let places: PlaceType[] = [];
+
+  type RedisQueryResult = {
+    total: number;
+    documents: Array<{
+      id: string;
+      value: PlaceType;
+    }>;
+  };
+
+  const redisResult = (await redis.ft.search('idx:places', '*', {
+    LIMIT: {
+      from: offset,
+      size: limit,
+    },
+    RETURN: 'slug',
+  })) as unknown as RedisQueryResult;
+
+  if (redisResult.documents.length < limit) {
+    const placesFromDB = await db
+      .select()
+      .from(placeTable)
+      .limit(limit)
+      .offset(offset);
+
+    places = placesFromDB as PlaceType[];
+
+    await Promise.all(
+      places.map((p) => redis.json.set(`place:${p.slug}`, '$', p as PlaceType)),
+    );
   } else {
-    const dbPlaces = await db.select().from(place);
-    await redis.set('place:all', JSON.stringify(dbPlaces));
-
-    return dbPlaces;
+    places = redisResult.documents.map((doc) => doc.value);
   }
+
+  return {
+    data: places,
+    count: places.length,
+    page,
+    limit,
+  };
 }
 
 async function getPlaceBySlug(slug: string) {
-  const redis = await redisClient();
-  const redisPlace = await redis.get(`place:${slug}`);
+  const redis = await initRedis();
 
-  if (redisPlace) {
-    return JSON.parse(redisPlace);
-  } else {
-    const dbPlace = db.select().from(place).where(eq(place.slug, slug));
-    await redis.set(`place:${slug}`, JSON.stringify(dbPlace), {
-      expiration: {
-        type: 'EX',
-        value: 3600,
-      },
-    });
+  let place: PlaceType | Object = {};
 
-    return dbPlace;
+  const placesFromRedis = await redis.json.get(`place:${slug}`);
+
+  if (placesFromRedis && typeof placesFromRedis === 'string') {
+    place = JSON.parse(placesFromRedis);
   }
+
+  if (!placesFromRedis) {
+    const placeFromDB = (await db
+      .select()
+      .from(placeTable)
+      .where(eq(placeTable.slug, slug))) as unknown as PlaceType;
+
+    place = placeFromDB;
+  }
+
+  return place;
 }
 
 export { getPlaces, getPlaceBySlug };
